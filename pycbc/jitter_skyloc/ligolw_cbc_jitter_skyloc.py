@@ -41,13 +41,10 @@ from glue.ligolw.utils import process as ligolw_process
 #from pylal import inject
 #added
 import pycbc.version as ver
-from pycbc.detector import Detector as py_det
 from lal import cached_detector_by_name
 #
 from lal import LIGOTimeGPS
 lsctables.LIGOTimeGPS = LIGOTimeGPS
-eff_distance = py_det.efective_distance
-
 
 #
 # Utility functions
@@ -75,21 +72,21 @@ def site_end_time(detector, sim):
         sim.longitude, sim.latitude, sim.get_end()))
     return sim.get_end() + delay
 
-#def eff_distance(detector, sim):
-#    """
-#    Return the effective distance.
-#
-#    Ref: Duncan's PhD thesis, eq. (4.3) on page 57, implemented in
-#         LALInspiralSiteTimeAndDist in SimInspiralUtils.c:594.
-#    """
-#    #....changing inject.XLALComputeDetAMResponse to lal.ComputeDetAMResponse
-#    f_plus, f_cross = lal.ComputeDetAMResponse(detector.response,
-#        sim.longitude, sim.latitude, sim.polarization, sim.end_time_gmst)
-#    ci = math.cos(sim.inclination)
-#    s_plus = -(1 + ci * ci)
-#    s_cross = -2 * ci
-#    return 2 * sim.distance / math.sqrt(f_plus * f_plus * s_plus * s_plus + \
-#        f_cross * f_cross * s_cross * s_cross)
+def eff_distance(detector, sim):
+    """
+    Return the effective distance.
+
+    Ref: Duncan's PhD thesis, eq. (4.3) on page 57, implemented in
+         LALInspiralSiteTimeAndDist in SimInspiralUtils.c:594.
+    """
+    #....changing inject.XLALComputeDetAMResponse to lal.ComputeDetAMResponse
+    f_plus, f_cross = lal.ComputeDetAMResponse(detector.response,
+        sim.longitude, sim.latitude, sim.polarization, sim.end_time_gmst)
+    ci = math.cos(sim.inclination)
+    s_plus = -(1 + ci * ci)
+    s_cross = -2 * ci
+    return 2 * sim.distance / math.sqrt(f_plus * f_plus * s_plus * s_plus + \
+        f_cross * f_cross * s_cross * s_cross)
 #....adding definitions fisher_rvs, new_z_to_euler, rotate_euler
 def fisher_rvs(mu, kappa, size=1):
     """
@@ -259,7 +256,7 @@ for sim in table.get_table(siminsp_doc, lsctables.SimInspiralTable.tableName):
           site_end = site_end_time(detector, sim)
           setattr(sim, site + "_end_time", site_end.gpsSeconds)
           setattr(sim, site + "_end_time_ns", site_end.gpsNanoSeconds)
-          setattr(sim, "eff_dist_" + site, eff_distance(detector, sim.distance, sim.longitude, sim.latitude, sim.polarization, sim.end_time_gmst, sim.inclination))
+          setattr(sim, "eff_dist_" + site, eff_distance(detector, sim))
 
 #
 # Compute new injected distances
