@@ -42,6 +42,7 @@ from glue.ligolw.utils import process as ligolw_process
 #added
 import pycbc.version as ver
 from lal import cached_detector_by_name
+from pycbc.distributions import sky_location
 #
 from lal import LIGOTimeGPS
 lsctables.LIGOTimeGPS = LIGOTimeGPS
@@ -88,69 +89,6 @@ def eff_distance(detector, sim):
     return 2 * sim.distance / math.sqrt(f_plus * f_plus * s_plus * s_plus + \
         f_cross * f_cross * s_cross * s_cross)
 #....adding definitions fisher_rvs, new_z_to_euler, rotate_euler
-def fisher_rvs(mu, kappa, size=1):
-    """
-    Return a random (polar, azimuthal) angle drawn from the Fisher
-    distribution. Assume that the concentration parameter (kappa) is large
-    so that we can use a Rayleigh distribution about the north pole and
-    rotate it to be centered at the (polar, azimuthal) coordinate mu.
-
-    Assume kappa = 1 / sigma**2
-
-    References:
-      * http://en.wikipedia.org/wiki/Von_Mises-Fisher_distribution
-      * http://arxiv.org/pdf/0902.0737v1 (states the Rayleigh limit)
-    """
-    rayleigh_rv = \
-        np.array((np.random.rayleigh(scale=1. / np.sqrt(kappa), size=size),
-                  np.random.uniform(low=0, high=2*lal.PI, size=size)))\
-                .reshape((2, size)).T  # guarantee 2D and transpose
-    a, b = new_z_to_euler(mu)
-    return rotate_euler(rayleigh_rv, a, b, 0)
-def new_z_to_euler(new_z):
-    """
-    From the new Z axis expressed in (polar, azimuthal) angles of the
-    initial coordinate system, return the (alpha, beta) Euler angles
-    that rotate the old Z axis (0, 0) to the new Z axis.
-    """
-    return (lal.PI_2 + new_z[1]) % (2 * lal.PI), new_z[0]
-def rotate_euler(sph_coords, alpha, beta, gamma):
-    """
-    Take an Nx2 array of N (theta, phi) vectors on the unit sphere
-    (that is, (polar, azimuthal) angles in radians) and apply
-    rotations through the Euler angles alpha, beta, and gamma
-    in radians, using the ZXZ convention.
-    """
-    c = np.cos
-    s = np.sin
-
-    # Define rotation matrix
-    R = np.array(
-        [[c(alpha) * c(gamma) - c(beta) * s(alpha) * s(gamma),
-          c(gamma) * s(alpha) + c(alpha) * c(beta) * s(gamma),
-          s(beta) * s(gamma)],
-         [-c(beta) * c(gamma) * s(alpha) - c(alpha) * s(gamma),
-          c(alpha) * c(beta) * c(gamma) - s(alpha) * s(gamma),
-          c(gamma) * s(beta)],
-         [s(alpha) * s(beta), -c(alpha) * s(beta), c(beta)]], dtype=float)
-
-    # Convert to intermediate cartesian representation (N x 3)
-    cart_orig = np.empty(shape=(len(sph_coords), 3), dtype=float)
-    cart_orig[:, 0] = c(sph_coords[:, 1]) # * s(sph_coords[:, 0])
-    cart_orig[:, 1] = s(sph_coords[:, 1]) # * s(sph_coords[:, 0])
-    cart_orig[:, 0:2] *= s(sph_coords[:, 0])[:, None]
-    cart_orig[:, 2] = c(sph_coords[:, 0])
-
-    # Rotate by x_i = R_{ij} * x_j
-    # NB: dot contracts last dim of A with second-to-last dim of B
-    cart_new = np.dot(cart_orig, R)
-
-    # Extract new spherical coordinates
-    sph_new = np.empty(shape=(len(sph_coords), 2), dtype=float)
-    sph_new[:, 0] = np.arccos(cart_new[:, 2])
-    sph_new[:, 1] = np.arctan2(cart_new[:, 1], cart_new[:, 0])
-
-    return sph_new
 #
 # Parse commandline
 #
@@ -242,13 +180,11 @@ for sim in table.get_table(siminsp_doc, lsctables.SimInspiralTable.tableName):
       jitter_sig = jitter_sigma
 
     if jitter_sig > 0:
-      kappa = 1 / (0.66 * jitter_sig)**2  # approximation from Briggs99
-      #....modified.........
-      kappa = 1 / (0.66 * jitter_sig)**2  # approximation from Briggs99
-      fisher=fisher_rvs(np.array(lonlat2polaz(sim.longitude, sim.latitude)), kappa,size=1).squeeze()
-      fisher_theta=fisher[0]
-      fisher_phi=fisher[1]
-      sim.longitude, sim.latitude = polaz2lonlat(fisher_theta,fisher_phi)
+  #added sky_location.Uniformsky as distribution
+      dist=sky_location.UniformSky( polar_bounds=(0,1), azimuthal_bounds=(0,2))
+      dist_rvs=dist.rvs(size=1000).squeeze()
+      sim.longitude, sim.latitude = polaz2lonlat(dist_rvs['ra'][0],dist_rvs['dec'][1])
+    
     
       # update arrival times and effective distances at the sites
       sim_geocent_end = sim.get_end()
