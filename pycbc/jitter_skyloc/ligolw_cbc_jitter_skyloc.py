@@ -197,19 +197,19 @@ for sim in table.get_table(siminsp_doc, lsctables.SimInspiralTable.tableName):
 #
 # Compute new injected distances
 #
-if args.phase_error != 0 or args.amplitude_error != 0:
-  for sim in table.get_table(siminsp_doc,
-                             lsctables.SimInspiralTable.tableName):
-    mu = sim.distance * (1 + 0.5 * np.deg2rad(args.phase_error)**2)
-    sigma = (args.amplitude_error / 100.) * sim.distance
-    if args.d_distr == "gaussian":
-      setattr(sim, "distance", random.gauss(mu, sigma))
-      for site, detector in site_location_list:
-        setattr(sim, "eff_dist_" + site, eff_distance(detector, sim))
-    elif args.d_distr == "lognormal":
-      setattr(sim, "distance", np.log(random.lognormvariate(mu, sigma)))
-      for site, detector in site_location_list:
-        setattr(sim, "eff_dist_" + site, eff_distance(detector, sim))
+#if args.phase_error != 0 or args.amplitude_error != 0:
+# for sim in table.get_table(siminsp_doc,
+#                             lsctables.SimInspiralTable.tableName):
+#    mu = sim.distance * (1 + 0.5 * np.deg2rad(args.phase_error)**2)
+#    sigma = (args.amplitude_error / 100.) * sim.distance
+#    if args.d_distr == "gaussian":
+#      setattr(sim, "distance", random.gauss(mu, sigma))
+#      for site, detector in site_location_list:
+#        setattr(sim, "eff_dist_" + site, eff_distance(detector, sim))
+#    elif args.d_distr == "lognormal":
+#      setattr(sim, "distance", np.log(random.lognormvariate(mu, sigma)))
+#      for site, detector in site_location_list:
+#        setattr(sim, "eff_dist_" + site, eff_distance(detector, sim))
 
 #
 # Write output
