@@ -35,10 +35,12 @@ from glue.ligolw import lsctables
 from glue.ligolw import table
 from glue.ligolw import utils
 from glue.ligolw.utils import process as ligolw_process
+
 #removed
 #from pylal import git_version
 #from pylal import sphericalutils as su
 #from pylal import inject
+
 #added
 import pycbc.version as ver
 from lal import cached_detector_by_name
